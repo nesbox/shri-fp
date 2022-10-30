@@ -15,9 +15,8 @@
  * Ответ будет приходить в поле {result}
  */
 
-import { andThen, assoc, concat, gt, mathMod, otherwise, partial, partialRight, test, __ } from 'ramda';
-import { ifElse } from 'ramda';
-import { allPass, compose, lt, pipe, prop, tap } from 'ramda';
+import * as R from 'ramda'
+import { __ } from 'ramda';
 
 import Api from '../tools/api';
 
@@ -25,49 +24,60 @@ const api = new Api();
 
 const processSequence = ({ value, writeLog, handleSuccess, handleError }) => {
 
-    const tapLog = tap(writeLog)
-    const length = prop('length')
+    const tapLog = R.tap(writeLog)
+    const length = R.prop('length')
+    const getResult = R.prop('result')
 
-    const validate = allPass([
-        compose(lt(__, 10), length),
-        compose(gt(__, 2), length),
-        test(/^[0-9]+(.[0-9]+)$/),
-    ])
-
-    const pow2 = partialRight(Math.pow, [2])
-    const mod3 = partialRight(mathMod, [3])
-
-    const validationSuccess = pipe(
-        Number,
-        Math.round,
-        tapLog,
-
-        assoc('number', __, { from: 10, to: 2 }),
-        compose(api.get('https://api.tech/numbers/base')),
-        andThen(pipe(
-            prop('result'),
-            tapLog,
-            compose(tapLog, length),
-            pow2,
-            tapLog,
-            mod3,
-            tapLog,
-            String,
-            concat('https://animals.tech/'),
-            partialRight(api.get, [{}]),
-            andThen(
-                compose(handleSuccess, prop('result'))
-            ),
-            otherwise(handleError),
-        )),
-        otherwise(handleError),
+    const symbolCountPow2 = R.pipe(
+        R.compose(tapLog, length),
+        R.partialRight(Math.pow, [2]),
     )
 
-    const validationError = partial(handleError, ['ValidationError'])
+    const resultMod3 = R.partialRight(R.mathMod, [3])
 
-    const process = pipe(
+    const numberBaseParams = R.assoc('number', __, { from: 10, to: 2 })
+    const getNumberBase = R.compose(api.get('https://api.tech/numbers/base'), numberBaseParams)
+
+    const getAnimal = R.pipe(
+        R.compose(R.concat('https://animals.tech/'), String),
+        R.partialRight(api.get, [{}]),
+    )
+
+    const otherwiseError = R.otherwise(handleError)
+
+    const validationSuccess = R.pipe(
+        R.compose(Math.round, Number),
         tapLog,
-        ifElse(validate, validationSuccess, validationError),
+        
+        getNumberBase,
+        R.andThen(R.pipe(
+            getResult,
+            tapLog,
+
+            symbolCountPow2,
+            tapLog,
+
+            resultMod3,
+            tapLog,
+
+            getAnimal,
+            R.andThen(
+                R.compose(handleSuccess, getResult)
+            ),    
+            otherwiseError,
+        )),
+        otherwiseError,
+    )
+
+    const validationError = R.partial(handleError, ['ValidationError'])
+
+    const process = R.pipe(
+        tapLog,
+        R.ifElse(R.allPass([
+            R.compose(R.lt(__, 10), length),
+            R.compose(R.gt(__, 2), length),
+            R.test(/^[0-9]+(.[0-9]+)$/),
+        ]), validationSuccess, validationError),
     )
 
     process(value)
