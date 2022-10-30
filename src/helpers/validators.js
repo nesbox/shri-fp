@@ -13,8 +13,7 @@
  * Если какие либо функции написаны руками (без использования библиотек) это не является ошибкой
  */
 
-import { gte, lte, values } from "lodash";
-import { allPass, complement, compose, count, curry, equals, partial, prop } from "ramda";
+import { allPass, complement, compose, count, curry, equals, prop, lte, values, anyPass } from "ramda";
 
 const star = prop('star')
 const square = prop('square')
@@ -27,11 +26,11 @@ const white = equals('white')
 const orange = equals('orange')
 const blue = equals('blue')
 
-// const isNotRed = complement(isRed)
-// const isNotGreen = complement(isGreen)
-// const isNotWhite = complement(isWhite)
-// const isNotOrange = complement(isOrange)
-// const isNotBlue = complement(isBlue)
+const notRed = complement(equals('red'))
+const notWhite = complement(equals('white'))
+
+const countColor = color => compose(count(color), values)
+const hasColors = (count, color) => compose(curry(equals)(count), countColor(color))
 
 // 1. Красная звезда, зеленый квадрат, все остальные белые.
 export const validateFieldN1 = allPass([
@@ -42,28 +41,53 @@ export const validateFieldN1 = allPass([
 ])
 
 // 2. Как минимум две фигуры зеленые.
-export const validateFieldN2 = compose(curry(lte)(2), curry(count)(green), values)
+export const validateFieldN2 = compose(curry(lte)(2), countColor(green))
 
 // 3. Количество красных фигур равно кол-ву синих.
-export const validateFieldN3 = () => false;
+export const validateFieldN3 = (props) =>
+{
+    // тут кажется что можно оптимизировать и убрать props,
+    // но я не знаю как, подскажите плз... :)
+    return equals(countColor(red)(props), countColor(blue)(props))
+}
 
 // 4. Синий круг, красная звезда, оранжевый квадрат треугольник любого цвета
-export const validateFieldN4 = () => false;
+export const validateFieldN4 = allPass([
+    compose(blue, circle),
+    compose(red, star),
+    compose(orange, square),
+])
 
 // 5. Три фигуры одного любого цвета кроме белого (четыре фигуры одного цвета – это тоже true).
-export const validateFieldN5 = () => false;
+export const validateFieldN5 = anyPass([
+    hasColors(3, red),
+    hasColors(3, green),
+    hasColors(3, white),
+    hasColors(3, orange),
+    hasColors(3, blue),
+])
 
 // 6. Ровно две зеленые фигуры (одна из зелёных – это треугольник), плюс одна красная. Четвёртая оставшаяся любого доступного цвета, но не нарушающая первые два условия
-export const validateFieldN6 = () => false;
+export const validateFieldN6 = allPass([
+    hasColors(2, green),
+    compose(green, triangle),
+    hasColors(1, red),
+])
 
 // 7. Все фигуры оранжевые.
-export const validateFieldN7 = () => false;
+export const validateFieldN7 = hasColors(4, orange)
 
 // 8. Не красная и не белая звезда, остальные – любого цвета.
-export const validateFieldN8 = () => false;
+export const validateFieldN8 = allPass([
+    compose(notRed, star),
+    compose(notWhite, star),
+])
 
 // 9. Все фигуры зеленые.
-export const validateFieldN9 = () => false;
+export const validateFieldN9 = hasColors(4, green)
 
 // 10. Треугольник и квадрат одного цвета (не белого), остальные – любого цвета
-export const validateFieldN10 = () => false;
+export const validateFieldN10 = (props) => 
+{
+    return equals(triangle(props), square(props))
+}
