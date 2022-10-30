@@ -18,34 +18,45 @@
 
  const api = new Api();
 
- /**
-  * Я – пример, удали меня
-  */
- const wait = time => new Promise(resolve => {
-     setTimeout(resolve, time);
- })
-
  const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
-     /**
-      * Я – пример, удали меня
-      */
-     writeLog(value);
 
-     api.get('https://api.tech/numbers/base', {from: 2, to: 10, number: '01011010101'}).then(({result}) => {
-         writeLog(result);
-     });
+    writeLog(value)
 
-     wait(2500).then(() => {
-         writeLog('SecondLog')
+    if(value.length < 10 && value.length > 2 && /^[0-9.]+$/.test(value))
+    {
+        let number = Math.round(Number(value))
+        writeLog(number)
 
-         return wait(1500);
-     }).then(() => {
-         writeLog('ThirdLog');
+        api.get('https://api.tech/numbers/base', { from: 10, to: 2, number: number })
+            .then(({ result }) => {
+                writeLog(result);
+                writeLog(result.length);
 
-         return wait(400);
-     }).then(() => {
-         handleSuccess('Done');
-     });
+                number = Math.pow(number, 2)
+
+                writeLog(number);
+
+                number %= 3
+
+                writeLog(number);
+
+            })
+            .then(() => 
+            {
+                api.get(`https://animals.tech/${number}`, {})
+                .then(({result}) => 
+                {
+                    handleSuccess(result)
+                })
+                .catch(handleError)
+
+            })
+            .catch(handleError)
+    }
+    else
+    {
+        handleError('ValidationError')
+    }
  }
 
  export default processSequence;

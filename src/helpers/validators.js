@@ -43,13 +43,12 @@ export const validateFieldN1 = allPass([
 // 2. Как минимум две фигуры зеленые.
 export const validateFieldN2 = compose(curry(lte)(2), countColor(green))
 
+const hasRedBlueCount = (count) => allPass([hasColors(count, red), hasColors(count, blue)])
 // 3. Количество красных фигур равно кол-ву синих.
-export const validateFieldN3 = (props) =>
-{
-    // тут кажется что можно оптимизировать и убрать props,
-    // но я не знаю как, подскажите плз... :)
-    return equals(countColor(red)(props), countColor(blue)(props))
-}
+export const validateFieldN3 = anyPass([
+    hasRedBlueCount(1), 
+    hasRedBlueCount(2)
+])
 
 // 4. Синий круг, красная звезда, оранжевый квадрат треугольник любого цвета
 export const validateFieldN4 = allPass([
@@ -86,8 +85,11 @@ export const validateFieldN8 = allPass([
 // 9. Все фигуры зеленые.
 export const validateFieldN9 = hasColors(4, green)
 
+const triangleAndSquare = props => [triangle(props), square(props)]
+const sameColors = props => equals(...props)
+
 // 10. Треугольник и квадрат одного цвета (не белого), остальные – любого цвета
-export const validateFieldN10 = (props) => 
-{
-    return equals(triangle(props), square(props))
-}
+export const validateFieldN10 = compose(allPass([
+    hasColors(0, white),
+    sameColors,
+]), triangleAndSquare)
