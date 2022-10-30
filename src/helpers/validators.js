@@ -13,17 +13,36 @@
  * Если какие либо функции написаны руками (без использования библиотек) это не является ошибкой
  */
 
-// 1. Красная звезда, зеленый квадрат, все остальные белые.
-export const validateFieldN1 = ({star, square, triangle, circle}) => {
-    if (triangle !== 'white' || circle !== 'white') {
-        return false;
-    }
+import { gte, lte, values } from "lodash";
+import { allPass, complement, compose, count, curry, equals, partial, prop } from "ramda";
 
-    return star === 'red' && square === 'green';
-};
+const star = prop('star')
+const square = prop('square')
+const triangle = prop('triangle')
+const circle = prop('circle')
+
+const red = equals('red')
+const green = equals('green')
+const white = equals('white')
+const orange = equals('orange')
+const blue = equals('blue')
+
+// const isNotRed = complement(isRed)
+// const isNotGreen = complement(isGreen)
+// const isNotWhite = complement(isWhite)
+// const isNotOrange = complement(isOrange)
+// const isNotBlue = complement(isBlue)
+
+// 1. Красная звезда, зеленый квадрат, все остальные белые.
+export const validateFieldN1 = allPass([
+    compose(white, triangle),
+    compose(white, circle),
+    compose(red, star),
+    compose(green, square),
+])
 
 // 2. Как минимум две фигуры зеленые.
-export const validateFieldN2 = () => false;
+export const validateFieldN2 = compose(curry(lte, 2), curry(count, green), values)
 
 // 3. Количество красных фигур равно кол-ву синих.
 export const validateFieldN3 = () => false;
