@@ -42,7 +42,7 @@ export const validateFieldN1 = allPass([
 ])
 
 // 2. Как минимум две фигуры зеленые.
-export const validateFieldN2 = compose(curry(lte, 2), curry(count, green), values)
+export const validateFieldN2 = compose(curry(lte)(2), curry(count)(green), values)
 
 // 3. Количество красных фигур равно кол-ву синих.
 export const validateFieldN3 = () => false;
