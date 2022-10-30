@@ -14,49 +14,64 @@
  * Иногда промисы от API будут приходить в состояние rejected, (прямо как и API в реальной жизни)
  * Ответ будет приходить в поле {result}
  */
- import Api from '../tools/api';
 
- const api = new Api();
+import { andThen, assoc, concat, gt, mathMod, otherwise, partial, partialRight, test, __ } from 'ramda';
+import { ifElse } from 'ramda';
+import { allPass, compose, lt, pipe, prop, tap } from 'ramda';
 
- const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
+import Api from '../tools/api';
 
-    writeLog(value)
+const api = new Api();
 
-    if(value.length < 10 && value.length > 2 && /^[0-9.]+$/.test(value))
-    {
-        let number = Math.round(Number(value))
-        writeLog(number)
+const processSequence = ({ value, writeLog, handleSuccess, handleError }) => {
 
-        api.get('https://api.tech/numbers/base', { from: 10, to: 2, number: number })
-            .then(({ result }) => {
-                writeLog(result);
-                writeLog(result.length);
+    const tapLog = tap(writeLog)
+    const length = prop('length')
 
-                number = Math.pow(number, 2)
+    const validate = allPass([
+        compose(lt(__, 10), length),
+        compose(gt(__, 2), length),
+        test(/^[0-9]+(.[0-9]+)$/),
+    ])
 
-                writeLog(number);
+    const pow2 = partialRight(Math.pow, [2])
+    const mod3 = partialRight(mathMod, [3])
 
-                number %= 3
+    const validationSuccess = pipe(
+        Number,
+        Math.round,
+        tapLog,
 
-                writeLog(number);
+        assoc('number', __, { from: 10, to: 2 }),
+        compose(api.get('https://api.tech/numbers/base')),
+        andThen(pipe(
+            prop('result'),
+            tapLog,
+            compose(tapLog, length),
+            pow2,
+            tapLog,
+            mod3,
+            tapLog,
+            String,
+            concat('https://animals.tech/'),
+            partialRight(api.get, [{}]),
+            andThen(
+                compose(handleSuccess, prop('result'))
+            ),
+            otherwise(handleError),
+        )),
+        otherwise(handleError),
+    )
 
-            })
-            .then(() => 
-            {
-                api.get(`https://animals.tech/${number}`, {})
-                .then(({result}) => 
-                {
-                    handleSuccess(result)
-                })
-                .catch(handleError)
+    const validationError = partial(handleError, ['ValidationError'])
 
-            })
-            .catch(handleError)
-    }
-    else
-    {
-        handleError('ValidationError')
-    }
- }
+    const process = pipe(
+        tapLog,
+        ifElse(validate, validationSuccess, validationError),
+    )
 
- export default processSequence;
+    process(value)
+
+}
+
+export default processSequence;
